@@ -1,0 +1,18 @@
+export const STORE = {
+  name: "Brother's Fashion Zone",
+  owner: 'Ashok Patel',
+  email: 'support@brothersfashionzone.com',
+  phone: '+91 81410 01555',
+  phoneRaw: '918141001555',
+  upiId: 'ashokpatela119-1@oksbi',
+  upiName: 'Ashok Ashokpatel',
+  qrImage: '/images/upi-qr.png',
+  whatsappBase: 'https://wa.me/918141001555',
+  instagram: 'https://instagram.com/brothers_fashion_zone_',
+  adminEmail: 'admin@brothersfashion.com',
+  hours: 'Mon–Sat: 10AM – 7PM IST',
+  sunday: 'Sunday: Closed',
+  freeDelivery: 599,
+  orderPrefix: 'BFZ',
+  year: 2026,
+} as const;
