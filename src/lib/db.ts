@@ -27,6 +27,12 @@ export async function getProductBySlug(slug: string) {
   return data
 }
 
+export async function getProductById(id: string) {
+  const { data } = await supabase
+    .from('products').select('*').eq('id', id).single()
+  return data
+}
+
 export async function updateProduct(id: string, data: any) {
   const { error } = await supabase
     .from('products').update(data).eq('id', id)

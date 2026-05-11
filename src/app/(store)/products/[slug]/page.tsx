@@ -16,6 +16,11 @@ import { useCartStore, CartItem } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { getProductBySlug } from '@/lib/db';
 
+interface SizeStock {
+  size: string;
+  stock: number;
+}
+
 interface ProductData {
   id: string;
   name: string;
@@ -32,6 +37,8 @@ interface ProductData {
   is_featured: boolean;
   total_stock: number;
   discount_pct: number;
+  variants: SizeStock[];
+  brand?: string;
 }
 
 export default function ProductPage() {
@@ -60,22 +67,27 @@ export default function ProductPage() {
           setProduct(null);
         } else {
           const productData = data as any;
+          const variants = typeof productData.variants === 'string' 
+            ? JSON.parse(productData.variants) 
+            : productData.variants || [];
           setProduct({
             id: productData.id,
             name: productData.name || '',
             slug: productData.slug || '',
             description: productData.description || '',
             price: productData.price || 0,
-            original_price: productData.originalPrice || 0,
+            original_price: productData.original_price || productData.originalPrice || 0,
             category: productData.category || '',
             subcategory: productData.subcategory || '',
             images: productData.images || [],
             colors: productData.colors || [],
             tags: productData.tags || [],
-            is_active: productData.isActive || true,
-            is_featured: productData.isFeatured || false,
-            total_stock: productData.totalStock || 0,
-            discount_pct: productData.discountPct || 0,
+            is_active: productData.is_active || productData.isActive || true,
+            is_featured: productData.is_featured || productData.isFeatured || false,
+            total_stock: productData.total_stock || productData.totalStock || 0,
+            discount_pct: productData.discount_pct || productData.discountPct || 0,
+            variants: variants,
+            brand: productData.brand || '',
           } as ProductData);
         }
       } catch (err) {
@@ -262,6 +274,11 @@ export default function ProductPage() {
             
             {/* SECTION 2 - PRODUCT INFO BOX */}
             <div className="bg-white border-2 border-[#0A0A0A] p-5 shadow-[4px_4px_0px_#0A0A0A] mt-4 lg:mt-0">
+              {product.brand && (
+                <p className="font-mono text-[12px] text-gray-400 uppercase tracking-widest mb-1">
+                  {product.brand}
+                </p>
+              )}
               <h1 className="font-display font-black text-2xl lg:text-[28px] uppercase text-[#0A0A0A] leading-[0.95]">
                 {product.name}
               </h1>
@@ -271,7 +288,7 @@ export default function ProductPage() {
               <p className="font-mono text-[11px] text-gray-500 uppercase tracking-widest mb-3">PRICE</p>
               
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="font-display font-black text-[40px] text-[#6B5CE7]">
+                <span className="font-display font-black text-[40px] text-[#0A0A0A]">
                   ₹{product.price?.toLocaleString()}
                 </span>
                 {product.original_price > product.price && (
@@ -280,7 +297,7 @@ export default function ProductPage() {
                   </span>
                 )}
                 {discount > 0 && (
-                  <span className="bg-[#FF2D6B] text-white font-display font-black text-[14px] uppercase px-[14px] py-[6px] border-2 border-[#0A0A0A] shadow-[2px_2px_0px_#0A0A0A]">
+                  <span className="bg-[#FF2D6B] text-white font-display font-black text-[14px] uppercase px-[14px] py-[6px]">
                     -{discount}% OFF
                   </span>
                 )}
@@ -288,25 +305,46 @@ export default function ProductPage() {
 
               {product.category && (
                 <div className="mt-4">
-                  <span className="bg-gradient-to-r from-[#6B5CE7] to-[#FF2D6B] text-white font-display font-black text-[13px] uppercase border-2 border-[#0A0A0A] inline-block px-4 py-2 shadow-[2px_2px_0px_#0A0A0A]">
-                    {product.category}
+                  <span className="bg-[#0A0A0A] text-white font-display font-black text-[13px] uppercase px-4 py-2">
+                    {product.category.replace('_', ' ')}
                   </span>
+                </div>
+              )}
+
+              {/* Colors Section */}
+              {product.colors && product.colors.length > 0 && (
+                <div className="mt-4">
+                  <p className="font-mono text-[11px] text-gray-500 uppercase mb-2">COLORS</p>
+                  <div className="flex flex-wrap gap-2">
+                    {product.colors.map((color: string, idx: number) => (
+                      <button
+                        key={idx}
+                        className="flex items-center gap-2 px-3 py-1 border border-[#0A0A0A] text-sm"
+                      >
+                        <span className="w-4 h-4 rounded-full border border-gray-300 bg-gray-200"></span>
+                        {color}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* SECTION 3 - SIZE + CONDITION */}
+            {/* SECTION 3 - SIZE + STOCK */}
             <div className="grid grid-cols-2 gap-2 mt-4">
               <div className="bg-white border-2 border-[#0A0A0A] p-4 shadow-[3px_3px_0px_#0A0A0A]">
                 <p className="font-mono text-[11px] text-gray-500 uppercase mb-1">SIZE</p>
                 <p className="font-display font-black text-[32px] text-[#0A0A0A] leading-none">
-                  {product.subcategory || 'M'}
+                  {selectedSize || 'SELECT'}
                 </p>
               </div>
               <div className="bg-white border-2 border-[#0A0A0A] p-4 shadow-[3px_3px_0px_#0A0A0A]" id="size-section">
                 <p className="font-mono text-[11px] text-gray-500 uppercase mb-1">STOCK</p>
                 <p className="font-display font-black text-[32px] text-[#0A0A0A] leading-none">
-                  {product.total_stock || 5}
+                  {selectedSize 
+                    ? (product.variants?.find((v: SizeStock) => v.size === selectedSize)?.stock || 0)
+                    : (product.total_stock || 0)
+                  }
                 </p>
               </div>
             </div>
@@ -315,20 +353,36 @@ export default function ProductPage() {
             <div className="bg-white border-2 border-[#0A0A0A] p-4 mt-4 shadow-[4px_4px_0px_#0A0A0A]">
               <p className="font-mono text-[11px] text-gray-500 uppercase mb-3">SELECT SIZE</p>
               <div className="flex flex-wrap gap-2">
-                {['S', 'M', 'L', 'XL', 'XXL'].map((size) => (
+                {(product.variants || []).map((item: SizeStock, idx: number) => (
                   <button
-                    key={size}
-                    onClick={() => { setSelectedSize(size); setSizeError(false); }}
+                    key={idx}
+                    onClick={() => { 
+                      if (item.stock > 0) {
+                        setSelectedSize(item.size); 
+                        setSizeError(false); 
+                      }
+                    }}
+                    disabled={item.stock === 0}
                     className={`w-12 h-12 border-2 border-[#0A0A0A] font-display font-black text-sm transition-all ${
-                      selectedSize === size
-                        ? 'bg-[#6B5CE7] text-white shadow-[2px_2px_0px_#0A0A0A]'
-                        : 'bg-white text-[#0A0A0A] hover:bg-[#F5F0E8] shadow-[2px_2px_0px_#0A0A0A]'
+                      item.stock === 0
+                        ? 'bg-gray-100 text-gray-400 line-through cursor-not-allowed'
+                        : selectedSize === item.size
+                          ? 'bg-[#0A0A0A] text-white shadow-[2px_2px_0px_#0A0A0A]'
+                          : 'bg-white text-[#0A0A0A] hover:bg-[#F5F0E8] shadow-[2px_2px_0px_#0A0A0A]'
                     }`}
                   >
-                    {size}
+                    {item.size}
                   </button>
                 ))}
               </div>
+              {selectedSize && (
+                <p className="text-sm text-gray-500 mt-2 font-mono">
+                  Selected: <span className="font-semibold text-[#0A0A0A]">{selectedSize}</span>
+                  {(product.variants || []).find((v: SizeStock) => v.size === selectedSize && v.stock > 0 && v.stock <= 5) && (
+                    <span className="text-orange-500 ml-2">• Only few left!</span>
+                  )}
+                </p>
+              )}
             </div>
 
             {/* SECTION 4 - ADD TO CART */}

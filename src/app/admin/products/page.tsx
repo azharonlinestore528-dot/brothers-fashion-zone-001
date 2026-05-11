@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, Plus, Sparkles, Package, Pencil, Trash2, Star, MoreVertical, Eye } from 'lucide-react';
+import { Search, Plus, Sparkles, Package, Pencil, Trash2, Star, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getProducts, deleteProduct, updateProduct } from '@/lib/db';
-import { ProductFormModal } from '@/components/admin/ProductFormModal';
 
 interface Product {
   id: string;
@@ -36,12 +36,11 @@ const tabs = [
 ];
 
 export default function AdminProductsPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
 
   const fetchProducts = async () => {
     try {
@@ -97,13 +96,7 @@ export default function AdminProductsPage() {
   };
 
   const openEdit = (product: Product) => {
-    setEditingProduct(product);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingProduct(null);
+    router.push(`/admin/products/${product.id}/edit`);
   };
 
   return (
@@ -116,17 +109,13 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 h-10 px-4 border border-[#C9B99A] text-[#C9B99A] bg-[rgba(201,185,154,0.08)] rounded-lg font-inter text-[13px] hover:bg-[rgba(201,185,154,0.15)] transition-colors">
-            <Sparkles size={14} />
-            AI Create
-          </button>
-          <button 
-            onClick={() => { setEditingProduct(null); setShowModal(true); }}
+          <Link 
+            href="/admin/products/new"
             className="flex items-center gap-2 h-10 px-4 bg-[#C9B99A] text-[#0A0A0A] rounded-lg font-inter text-[14px] font-semibold hover:bg-[#B8A88A] transition-colors"
           >
             <Plus size={14} />
             Add Product
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -169,13 +158,13 @@ export default function AdminProductsPage() {
           <Package size={48} className="mx-auto text-white/10" />
           <h3 className="text-white/60 font-display text-[24px] mt-4">No products yet</h3>
           <p className="text-white/30 font-inter text-[14px] mt-2">Add your first product to get started</p>
-          <button 
-            onClick={() => { setEditingProduct(null); setShowModal(true); }}
+          <Link 
+            href="/admin/products/new"
             className="mt-6 flex items-center gap-2 mx-auto h-10 px-4 bg-[#C9B99A] text-[#0A0A0A] rounded-lg font-inter text-[14px] font-semibold"
           >
             <Plus size={14} />
             Add Product
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="bg-[#111111] border border-[#1A1A1A] rounded-xl overflow-hidden">
@@ -269,13 +258,6 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* Product Form Modal */}
-      <ProductFormModal
-        isOpen={showModal}
-        onClose={closeModal}
-        onSuccess={fetchProducts}
-        editProduct={editingProduct}
-      />
-    </div>
+      </div>
   );
 }

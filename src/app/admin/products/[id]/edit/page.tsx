@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { UploadCloud, Plus, Trash2, X, ArrowLeft } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { UploadCloud, X, ArrowLeft } from 'lucide-react';
 import { uploadImage } from '@/lib/uploadImage';
-import { addProduct } from '@/lib/db';
+import { addProduct, updateProduct, getProductById } from '@/lib/db';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -49,9 +49,13 @@ const PRESET_COLORS = [
   { name: 'Navy', hex: '#1B2A4A' },
 ];
 
-export default function NewProductPage() {
+export default function EditProductPage() {
   const router = useRouter();
+  const params = useParams();
+  const productId = params?.id as string;
+  
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,13 +64,50 @@ export default function NewProductPage() {
   const [price, setPrice] = useState('');
   const [originalPrice, setOriginalPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [brand, setBrand] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [sizeStock, setSizeStock] = useState<{size: string, stock: number}[]>(
-    SIZE_OPTIONS['clothing_men'].map(s => ({ size: s, stock: 0 }))
-  );
+  const [sizeStock, setSizeStock] = useState<{size: string, stock: number}[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
   const [isActive, setIsActive] = useState(true);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!productId) return;
+      
+      try {
+        const product = await getProductById(productId);
+        
+        if (product) {
+          setName(product.name || '');
+          setCategory(product.category || 'clothing_men');
+          setPrice(product.price?.toString() || '');
+          setOriginalPrice(product.original_price?.toString() || '');
+          setDescription(product.description || '');
+          setBrand(product.brand || '');
+          setImages(product.images || []);
+          setSelectedColors(product.colors || []);
+          setIsFeatured(product.is_featured || false);
+          setIsActive(product.is_active !== false);
+          
+          const variants = typeof product.variants === 'string' 
+            ? JSON.parse(product.variants) 
+            : product.variants || [];
+          setSizeStock(variants);
+        } else {
+          toast.error('Product not found');
+          router.push('/admin/products');
+        }
+      } catch (err) {
+        console.error('Error fetching product:', err);
+        toast.error('Failed to load product');
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId, router]);
 
   const generateSlug = (productName: string) => {
     return productName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -74,7 +115,9 @@ export default function NewProductPage() {
 
   const handleCategoryChange = (newCategory: string) => {
     setCategory(newCategory);
-    setSizeStock(SIZE_OPTIONS[newCategory].map(s => ({ size: s, stock: 0 })));
+    if (sizeStock.length === 0) {
+      setSizeStock(SIZE_OPTIONS[newCategory].map(s => ({ size: s, stock: 0 })));
+    }
   };
 
   const handleFileSelect = async (files: FileList | null) => {
@@ -137,33 +180,45 @@ export default function NewProductPage() {
 
       const totalStock = sizeStock.reduce((sum, v) => sum + (v.stock || 0), 0);
 
-      await addProduct({
+      await updateProduct(productId, {
         name,
         slug: generateSlug(name),
         category,
         subcategory: null,
         price: parseFloat(price),
-        originalPrice: originalPrice ? parseFloat(originalPrice) : null,
-        discountPct,
+        original_price: originalPrice ? parseFloat(originalPrice) : null,
+        discount_pct: discountPct,
         description: description || null,
+        brand: brand || null,
         images,
         variants: sizeStock.map(s => ({ size: s.size, stock: s.stock })),
         colors: selectedColors,
         tags: [],
-        totalStock,
-        isActive,
-        isFeatured,
+        total_stock: totalStock,
+        is_active: isActive,
+        is_featured: isFeatured,
       });
 
-      toast.success('Product saved!');
+      toast.success('Product updated!');
       router.push('/admin/products');
     } catch (err: any) {
-      console.error('Error saving product:', err);
-      toast.error(err.message || 'Failed to save product');
+      console.error('Error updating product:', err);
+      toast.error(err.message || 'Failed to update product');
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] text-white p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-[#C9B99A] border-t-transparent rounded-full animate-spin mx-auto mb-4" style={{ borderRadius: '0 !important' }} />
+          <p>Loading product...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white p-6">
@@ -172,7 +227,7 @@ export default function NewProductPage() {
           <Link href="/admin/products" className="p-2 bg-[#1A1A1A] rounded-lg hover:bg-[#2A2A2A] transition-colors">
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="font-display font-semibold text-[28px]">Add New Product</h1>
+          <h1 className="font-display font-semibold text-[28px]">Edit Product</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
@@ -188,6 +243,17 @@ export default function NewProductPage() {
                 placeholder="e.g. Classic Cotton Kurta"
                 className="w-full h-12 bg-[#0A0A0A] border border-[#222] rounded-lg px-4 text-white focus:border-[#C9B99A] focus:outline-none"
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[12px] text-white/50 uppercase tracking-wider mb-2">Brand Name</label>
+              <input
+                type="text"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                placeholder="e.g. Brother's Fashion"
+                className="w-full h-12 bg-[#0A0A0A] border border-[#222] rounded-lg px-4 text-white focus:border-[#C9B99A] focus:outline-none"
               />
             </div>
 
@@ -360,7 +426,7 @@ export default function NewProductPage() {
               disabled={loading || uploading}
               className="flex-1 h-14 bg-[#C9B99A] text-[#0A0A0A] font-semibold rounded-xl hover:bg-[#B8A88A] disabled:opacity-60 transition-all"
             >
-              {loading ? 'Saving...' : uploading ? 'Uploading images...' : 'Save Product'}
+              {loading ? 'Updating...' : uploading ? 'Uploading images...' : 'Update Product'}
             </button>
             <Link
               href="/admin/products"

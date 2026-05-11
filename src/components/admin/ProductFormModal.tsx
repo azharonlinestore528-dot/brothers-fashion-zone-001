@@ -25,15 +25,19 @@ const categories = [
   { value: 'accessories', label: 'Accessories' },
 ];
 
+const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '28', '30', '32', '34', '36', '38', '40', '42', 'Free Size'];
+const FOOTWEAR_SIZES = ['IND 4', 'IND 5', 'IND 6', 'IND 7', 'IND 8', 'IND 9', 'IND 10', 'IND 11', 'IND 12'];
+const ACCESSORIES_SIZES = ['Free Size', 'XS', 'S', 'M', 'L', 'XL'];
+
 const SIZE_OPTIONS: Record<string, string[]> = {
-  clothing_men: ['XS','S','M','L','XL','XXL','XXXL','28','30','32','34','36','38','40','42'],
-  clothing_women: ['XS','S','M','L','XL','XXL','XXXL','28','30','32','34','36','38','40'],
-  footwear_men: ['UK 6','UK 6.5','UK 7','UK 7.5','UK 8','UK 8.5','UK 9','UK 9.5','UK 10','UK 11','UK 12'],
-  footwear_women: ['UK 3','UK 3.5','UK 4','UK 4.5','UK 5','UK 5.5','UK 6','UK 6.5','UK 7','UK 7.5','UK 8'],
-  footwear_kids: ['UK 1','UK 2','UK 3','UK 4','UK 5','UK 6'],
-  watches: ['Free Size','36mm','38mm','40mm','42mm','44mm'],
-  bags: ['Free Size','Mini','Small','Medium','Large'],
-  accessories: ['Free Size','XS','S','M','L','XL'],
+  clothing_men: CLOTHING_SIZES,
+  clothing_women: CLOTHING_SIZES,
+  footwear_men: FOOTWEAR_SIZES,
+  footwear_women: FOOTWEAR_SIZES,
+  footwear_kids: FOOTWEAR_SIZES,
+  watches: ['Free Size', '36mm', '38mm', '40mm', '42mm', '44mm'],
+  bags: ['Free Size', 'Mini', 'Small', 'Medium', 'Large'],
+  accessories: ACCESSORIES_SIZES,
 };
 
 const PRESET_COLORS = [
